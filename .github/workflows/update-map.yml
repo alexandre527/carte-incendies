@@ -1,0 +1,37 @@
+name: Mise a jour quotidienne de la carte des incendies
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # tous les jours a 6h00 UTC
+  workflow_dispatch:        # permet aussi de lancer manuellement depuis l'onglet Actions
+
+permissions:
+  contents: write
+
+jobs:
+  update-map:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dependances
+        run: pip install -r requirements.txt
+
+      - name: Generer la carte
+        env:
+          MAP_KEY: ${{ secrets.MAP_KEY }}
+        run: python carte_incendies_temps_reel.py
+
+      - name: Publier la carte mise a jour
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          git diff --quiet --cached || git commit -m "Mise a jour automatique de la carte des incendies"
+          git push
